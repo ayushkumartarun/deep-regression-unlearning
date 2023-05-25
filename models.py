@@ -569,3 +569,46 @@ class TFT(nn.Module):
         
         return  output, encoder_output, decoder_output, attn_output, attn_output_weights, encoder_sparse_weights, decoder_sparse_weights
     
+class LSTMnetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.hidden_size = 64
+        self.input_size = 5
+        self.num_layers = 1
+        self.bidirectional = False
+        self.num_directions = 1
+        self.dropout1 = nn.Dropout(p=0.3)
+
+        if self.bidirectional:
+            self.num_directions = 2
+ 
+        self.lstm = nn.LSTM( self.input_size, self.hidden_size, self.num_layers, 
+                             bidirectional=self.bidirectional, batch_first=True)
+        
+        self.linear1 = nn.Linear(self.hidden_size*self.num_directions, 64)
+        self.linear2 = nn.Linear(64, 32)
+        self.linear3 = nn.Linear(32, 16)
+        self.linear4 = nn.Linear(16, 3)
+        self.relu = nn.ReLU()
+
+    def forward(self, inp):
+        
+        lstm_out1, _ = self.lstm(inp)
+
+        x1 = self.dropout1( lstm_out1)
+        
+        actv1 = x1
+        
+        output = self.linear1(x1[:, -1, :])
+        actv2 = output
+        output = self.relu(output)
+        
+        output = self.linear2(output)
+        actv3 = output
+        output = self.relu(output)
+        
+        output = self.linear3(output)
+        output = self.relu(output)
+        output = self.linear4(output)
+        
+        return output.view(-1, 1, 3), actv1, actv2, actv3
