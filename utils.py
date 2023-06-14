@@ -1,9 +1,13 @@
+import re
 import torch
 import numpy as np
 from torch import nn
 import pandas as pd
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
+from nltk.corpus import stopwords
+
+stop_words = set(stopwords.words('english'))
 
 class QuantileLoss(nn.Module):
     ## From: https://medium.com/the-artificial-impostor/quantile-regression-part-2-6fdbc26b2629
@@ -112,3 +116,23 @@ def predict(model, val_loader, device):
     model.eval()
     outputs = [inference_step(model, batch, device) for batch in val_loader]
     return torch.cat(outputs, axis = 0)
+
+
+def clean_text(text):
+    # lower case characters only
+    text = text.lower() 
+    
+    # remove urls
+    text = re.sub('http\S+', ' ', text)
+    
+    # only alphabets, spaces and apostrophes 
+    text = re.sub("[^a-z' ]+", ' ', text)
+    
+    # remove all apostrophes which are not used in word contractions
+    text = ' ' + text + ' '
+    text = re.sub("[^a-z]'|'[^a-z]", ' ', text)
+    
+    split_sentence = text.split()
+    filtered_sentence = [w for w in split_sentence if not w.lower() in stop_words]
+    return filtered_sentence
+

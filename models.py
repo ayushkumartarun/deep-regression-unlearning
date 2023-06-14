@@ -571,7 +571,7 @@ class TFT(nn.Module):
         return  output, encoder_output, decoder_output, attn_output, attn_output_weights, encoder_sparse_weights, decoder_sparse_weights
     
 class LSTMnetwork(nn.Module):
-    def __init__(self):
+    def __init__(self, text_embedding_dimension):
         super().__init__()
         self.hidden_size = 64
         self.input_size = text_embedding_dimension
