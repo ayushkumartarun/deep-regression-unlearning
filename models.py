@@ -574,7 +574,7 @@ class LSTMnetwork(nn.Module):
     def __init__(self):
         super().__init__()
         self.hidden_size = 64
-        self.input_size = 5
+        self.input_size = text_embedding_dimension
         self.num_layers = 1
         self.bidirectional = False
         self.num_directions = 1
@@ -586,30 +586,38 @@ class LSTMnetwork(nn.Module):
         self.lstm = nn.LSTM( self.input_size, self.hidden_size, self.num_layers, 
                              bidirectional=self.bidirectional, batch_first=True)
         
-        self.linear1 = nn.Linear(self.hidden_size*self.num_directions, 64)
+        self.linear1 = nn.Linear(self.hidden_size*self.num_directions*2, 64)
         self.linear2 = nn.Linear(64, 32)
         self.linear3 = nn.Linear(32, 16)
-        self.linear4 = nn.Linear(16, 3)
+        self.linear4 = nn.Linear(16, 1)
         self.relu = nn.ReLU()
 
-    def forward(self, inp):
+    def forward(self, sent1, sent2):
         
-        lstm_out1, _ = self.lstm(inp)
+        lstm_out1, _ = self.lstm( sent1)
 
         x1 = self.dropout1( lstm_out1)
         
         actv1 = x1
         
-        output = self.linear1(x1[:, -1, :])
-        actv2 = output
-        output = self.relu(output)
+        lstm_out2, _ = self.lstm( sent2)
         
-        output = self.linear2(output)
+        x2 = self.dropout1( lstm_out2)
+        
+        actv2 = x2
+        
+        output = self.linear1(torch.cat([x1[:, -1, :], x2[:, -1, :]], axis = 1))
         actv3 = output
         output = self.relu(output)
+        
+        
+        output = self.linear2(output)
+        actv4 = output
+        output = self.relu(output)
+        
         
         output = self.linear3(output)
         output = self.relu(output)
         output = self.linear4(output)
         
-        return output.view(-1, 1, 3), actv1, actv2, actv3
+        return torch.squeeze(output), actv1, actv2, actv3, actv4
